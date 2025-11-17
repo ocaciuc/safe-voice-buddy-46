@@ -4,6 +4,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, Send, Mic } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { streamChat } from "@/lib/streamChat";
 
 interface Message {
   id: string;
@@ -47,7 +48,7 @@ const Chat = () => {
   }, [messages]);
 
   const handleSend = async () => {
-    if (!input.trim()) return;
+    if (!input.trim() || isThinking) return;
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -60,25 +61,57 @@ const Chat = () => {
     setInput("");
     setIsThinking(true);
 
-    // Simulate AI response (will integrate with backend later)
-    setTimeout(() => {
-      const responses = [
-        "I hear you. That sounds like it's been weighing on you. Tell me more?",
-        "Thank you for sharing that with me. How does it make you feel?",
-        "I'm here with you. Take your time. What else is coming up for you?",
-        "That's a lot to carry. I'm here to listen, no rush.",
-      ];
+    let assistantContent = "";
+    const assistantId = (Date.now() + 1).toString();
 
-      const aiMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: "assistant",
-        content: responses[Math.floor(Math.random() * responses.length)],
-        timestamp: new Date(),
-      };
+    const upsertAssistant = (nextChunk: string) => {
+      assistantContent += nextChunk;
+      setMessages((prev) => {
+        const last = prev[prev.length - 1];
+        if (last?.id === assistantId) {
+          return prev.map((m) => 
+            m.id === assistantId ? { ...m, content: assistantContent } : m
+          );
+        }
+        return [
+          ...prev,
+          {
+            id: assistantId,
+            role: "assistant" as const,
+            content: assistantContent,
+            timestamp: new Date(),
+          },
+        ];
+      });
+    };
 
-      setMessages((prev) => [...prev, aiMessage]);
+    try {
+      await streamChat({
+        messages: [...messages, userMessage].map((m) => ({
+          role: m.role,
+          content: m.content,
+        })),
+        onDelta: (chunk) => upsertAssistant(chunk),
+        onDone: () => setIsThinking(false),
+        onError: (error) => {
+          console.error("Chat error:", error);
+          toast({
+            title: "Something went wrong",
+            description: error,
+            variant: "destructive",
+          });
+          setIsThinking(false);
+        },
+      });
+    } catch (error) {
+      console.error("Chat error:", error);
+      toast({
+        title: "Connection error",
+        description: "Please check your connection and try again.",
+        variant: "destructive",
+      });
       setIsThinking(false);
-    }, 1500);
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
