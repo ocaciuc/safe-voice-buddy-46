@@ -4,20 +4,18 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { ArrowLeft, User, Bell, Lock, HelpCircle, LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 const Settings = () => {
   const navigate = useNavigate();
-  const { toast } = useToast();
+  const { signOut } = useAuth();
 
   const companion = JSON.parse(localStorage.getItem("safevoice_companion") || "{}");
 
-  const handleLogout = () => {
-    toast({
-      title: "See you soon",
-      description: "Your progress is saved. Come back anytime.",
-    });
-    // Will implement proper logout with auth later
+  const handleLogout = async () => {
+    await signOut();
+    toast.success("See you soon — your progress is saved. Come back anytime.");
     navigate("/");
   };
 
