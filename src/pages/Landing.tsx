@@ -85,6 +85,24 @@ const Landing = () => {
               <span>Judgment Free</span>
             </div>
           </div>
+
+          {/* Legal Links */}
+          <div className="mt-8 flex justify-center gap-6 text-sm">
+            <Button
+              variant="link"
+              onClick={() => navigate("/privacy")}
+              className="text-muted-foreground hover:text-foreground underline"
+            >
+              Privacy Policy
+            </Button>
+            <Button
+              variant="link"
+              onClick={() => navigate("/terms")}
+              className="text-muted-foreground hover:text-foreground underline"
+            >
+              Terms of Service
+            </Button>
+          </div>
         </div>
       </div>
       
