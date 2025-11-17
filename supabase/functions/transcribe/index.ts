@@ -73,7 +73,7 @@ serve(async (req) => {
     console.log('Successfully generated audio, size:', audioBuffer.byteLength);
 
     return new Response(
-      JSON.stringify({ audio: base64Audio }),
+      JSON.stringify({ audioContent: base64Audio }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
