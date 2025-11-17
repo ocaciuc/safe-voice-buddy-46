@@ -932,22 +932,47 @@ useEffect(() => {
 ## Phase 5: Voice Integration (Optional) 🔴
 *Adds voice input/output using ElevenLabs*
 
-### Task 5.1: ElevenLabs Voice Integration 🔴
-**Status**: 🔴 Not Started  
+### Task 5.1: ElevenLabs Voice Integration 🟡
+**Status**: 🟡 In Progress  
 **Dependencies**: Task 3.1 (AI Integration)  
 **Decision**: This is a "Phase 5: Growth & Refinement" feature per implementation-plan.md
 
-**Recommendation**: Implement text chat first, get user feedback, then add voice.
+**What's Completed**:
+- ✅ Created `transcribe` edge function for text-to-speech
+- ✅ Added `ELEVENLABS_API_KEY` as Supabase secret
+- ✅ Configured function with CORS and error handling
+- ✅ Supports voice selection, model, and output format parameters
 
-**If proceeding with voice:**
+**Edge Function Details**:
+- **File**: `supabase/functions/transcribe/index.ts`
+- **Endpoint**: `POST /functions/v1/transcribe`
+- **Input**: `{ text, voiceId?, modelId?, outputFormat? }`
+- **Output**: `{ audio: base64EncodedMp3 }`
+- **Default Voice**: George (JBFqnCBsd6RMkjVDRZzb)
+- **Default Model**: eleven_multilingual_v2
+
+**Testing the Edge Function**:
+```typescript
+const { data, error } = await supabase.functions.invoke('transcribe', {
+  body: { 
+    text: "Hello, I'm your AI companion",
+    voiceId: "JBFqnCBsd6RMkjVDRZzb" // optional
+  }
+});
+// Returns: { audio: "base64..." }
+```
+
+**Next Steps**:
 
 1. **Install ElevenLabs SDK**
    ```bash
    npm install @11labs/react
    ```
 
-2. **Get ElevenLabs API Key** (user action required)
-   - Add as Supabase secret: `ELEVENLABS_API_KEY`
+2. **Integrate TTS into Chat.tsx**
+   - Add button to play AI responses as voice
+   - Use transcribe edge function to convert text to audio
+   - Add audio player with waveform visualization
 
 3. **Update Chat.tsx with voice**
    ```typescript
