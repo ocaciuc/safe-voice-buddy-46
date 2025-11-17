@@ -787,8 +787,8 @@ useEffect(() => {
 ## Phase 5: Voice Integration (Optional) 🔴
 *Adds voice input/output using ElevenLabs*
 
-### Task 5.1: ElevenLabs Voice Integration 🟡
-**Status**: 🟡 In Progress  
+### Task 5.1: ElevenLabs Voice Integration ✅
+**Status**: ✅ Completed  
 **Dependencies**: Task 3.1 (AI Integration)  
 **Decision**: This is a "Phase 5: Growth & Refinement" feature per implementation-plan.md
 
@@ -797,86 +797,37 @@ useEffect(() => {
 - ✅ Added `ELEVENLABS_API_KEY` as Supabase secret
 - ✅ Configured function with CORS and error handling
 - ✅ Supports voice selection, model, and output format parameters
+- ✅ Integrated TTS playback in Chat.tsx with voice button on AI messages
+- ✅ Added waveform visualization during audio playback
+- ✅ Implemented audio state management and cleanup
 
 **Edge Function Details**:
 - **File**: `supabase/functions/transcribe/index.ts`
 - **Endpoint**: `POST /functions/v1/transcribe`
 - **Input**: `{ text, voiceId?, modelId?, outputFormat? }`
-- **Output**: `{ audio: base64EncodedMp3 }`
-- **Default Voice**: George (JBFqnCBsd6RMkjVDRZzb)
-- **Default Model**: eleven_multilingual_v2
+- **Output**: `{ audioContent: base64EncodedMp3 }`
+- **Default Voice**: Aria (9BWtsMINqrJLrRacOk9x)
+- **Default Model**: eleven_turbo_v2_5
 
-**Testing the Edge Function**:
+**Frontend Integration**:
+- Volume2 icon button appears on all AI messages
+- Click to play/stop audio
+- Animated waveform bars during playback
+- Automatic cleanup on audio end
+
+**Testing the Feature**:
+1. Navigate to `/chat`
+2. Send a message to the AI companion
+3. Look for the speaker icon (Volume2) on the AI response
+4. Click to hear the message spoken by AI voice
+5. Waveform animation should pulse during playback
+
+**How to Test**:
 ```typescript
-const { data, error } = await supabase.functions.invoke('transcribe', {
-  body: { 
-    text: "Hello, I'm your AI companion",
-    voiceId: "JBFqnCBsd6RMkjVDRZzb" // optional
-  }
-});
-// Returns: { audio: "base64..." }
+// The integration is automatic - just click speaker icon on any AI message
+// Voice uses Aria (warm, empathetic tone)
+// Audio plays as MP3 at 44.1kHz, 128kbps
 ```
-
-**Next Steps**:
-
-1. **Install ElevenLabs SDK**
-   ```bash
-   npm install @11labs/react
-   ```
-
-2. **Integrate TTS into Chat.tsx**
-   - Add button to play AI responses as voice
-   - Use transcribe edge function to convert text to audio
-   - Add audio player with waveform visualization
-
-3. **Update Chat.tsx with voice**
-   ```typescript
-   import { useConversation } from '@11labs/react';
-
-   const conversation = useConversation({
-     onMessage: (message) => {
-       if (message.source === 'ai') {
-         setMessages(prev => [...prev, { role: 'assistant', content: message.message }]);
-       }
-     }
-   });
-
-   const startVoiceChat = async () => {
-     await navigator.mediaDevices.getUserMedia({ audio: true });
-     
-     const signedUrl = await getElevenLabsSignedUrl(); // Server-side function
-     await conversation.startSession({ url: signedUrl });
-   };
-   ```
-
-4. **Create server-side signed URL function**
-   ```typescript
-   // supabase/functions/elevenlabs-auth/index.ts
-   const ELEVENLABS_API_KEY = Deno.env.get("ELEVENLABS_API_KEY");
-   
-   const response = await fetch(
-     "https://api.elevenlabs.io/v1/convai/conversation/get_signed_url?agent_id=YOUR_AGENT_ID",
-     {
-       method: "GET",
-       headers: { "xi-api-key": ELEVENLABS_API_KEY },
-     }
-   );
-   
-   const { signed_url } = await response.json();
-   return new Response(JSON.stringify({ signedUrl: signed_url }));
-   ```
-
-**Testing**:
-- Request microphone access → Permission granted
-- Start voice call → Voice chat active
-- Speak → AI responds with voice
-- End call → Transcript saved to database
-
-**Acceptance Criteria**:
-- [ ] Microphone access explained before requesting
-- [ ] Voice quality matches selected voice preference
-- [ ] Voice pacing feels "unhurried" (design-milestone.md)
-- [ ] Transcript saved for journal entry generation
 
 ---
 

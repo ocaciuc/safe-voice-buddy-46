@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Send, Mic } from "lucide-react";
+import { ArrowLeft, Send, Mic, Volume2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { streamChat } from "@/lib/streamChat";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Message {
   id: string;
@@ -19,8 +20,10 @@ const Chat = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isThinking, setIsThinking] = useState(false);
+  const [playingMessageId, setPlayingMessageId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const companion = JSON.parse(localStorage.getItem("safevoice_companion") || "{}");
 
@@ -121,6 +124,57 @@ const Chat = () => {
     }
   };
 
+  const handlePlayAudio = async (messageId: string, text: string) => {
+    if (playingMessageId === messageId) {
+      // Stop current playback
+      audioRef.current?.pause();
+      setPlayingMessageId(null);
+      return;
+    }
+
+    try {
+      setPlayingMessageId(messageId);
+
+      const { data, error } = await supabase.functions.invoke("transcribe", {
+        body: { 
+          text,
+          voiceId: "9BWtsMINqrJLrRacOk9x", // Aria voice
+          modelId: "eleven_turbo_v2_5",
+          outputFormat: "mp3_44100_128"
+        },
+      });
+
+      if (error) throw error;
+
+      // Convert base64 to blob and create audio URL
+      const audioBlob = await fetch(`data:audio/mp3;base64,${data.audioContent}`).then(r => r.blob());
+      const audioUrl = URL.createObjectURL(audioBlob);
+
+      // Create and play audio
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+      
+      const audio = new Audio(audioUrl);
+      audioRef.current = audio;
+      
+      audio.onended = () => {
+        setPlayingMessageId(null);
+        URL.revokeObjectURL(audioUrl);
+      };
+      
+      await audio.play();
+    } catch (error) {
+      console.error("TTS error:", error);
+      toast({
+        title: "Voice playback failed",
+        description: "Unable to generate audio. Please try again.",
+        variant: "destructive",
+      });
+      setPlayingMessageId(null);
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-background">
       {/* Header */}
@@ -157,11 +211,31 @@ const Chat = () => {
               <p className="text-base leading-relaxed whitespace-pre-wrap">
                 {message.content}
               </p>
-              <p className={`text-xs mt-2 ${
-                message.role === "user" ? "text-primary-foreground/70" : "text-muted-foreground"
-              }`}>
-                {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-              </p>
+              <div className="flex items-center justify-between mt-2 gap-3">
+                <p className={`text-xs ${
+                  message.role === "user" ? "text-primary-foreground/70" : "text-muted-foreground"
+                }`}>
+                  {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </p>
+                {message.role === "assistant" && message.content && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 rounded-full"
+                    onClick={() => handlePlayAudio(message.id, message.content)}
+                  >
+                    {playingMessageId === message.id ? (
+                      <div className="flex gap-[2px] items-center">
+                        <div className="w-[3px] h-3 bg-current animate-breathing rounded-full" />
+                        <div className="w-[3px] h-4 bg-current animate-breathing rounded-full" style={{ animationDelay: "0.1s" }} />
+                        <div className="w-[3px] h-3 bg-current animate-breathing rounded-full" style={{ animationDelay: "0.2s" }} />
+                      </div>
+                    ) : (
+                      <Volume2 className="w-4 h-4" />
+                    )}
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
         ))}
