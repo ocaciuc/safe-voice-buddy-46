@@ -394,18 +394,20 @@ localStorage.setItem('companionPreferences', JSON.stringify(preferences));
    ```
 
 **Testing**:
-- Sign up with new email → Profile auto-created in database
-- Log out and log back in → Session persists
-- Try accessing /dashboard without login → Redirected to /login
-- Test error handling: Invalid credentials, duplicate email
-- Verify email redirect URL works in preview and production
+- ✅ Sign up with new email → Profile auto-created in database
+- ✅ Log out and log back in → Session persists
+- ✅ Try accessing /dashboard without login → Redirected to /login
+- ✅ Test error handling: Invalid credentials, duplicate email
+- ✅ Verify email redirect URL works in preview and production
 
 **Acceptance Criteria**:
-- [ ] User can sign up with email/password
-- [ ] Profile automatically created on signup
-- [ ] Protected routes redirect to login if not authenticated
-- [ ] Error messages use empathetic microcopy
-- [ ] Session persists across page refreshes
+- ✅ User can sign up with email/password
+- ✅ User can sign in with Google OAuth
+- ✅ Profile automatically created on signup
+- ✅ Protected routes redirect to login if not authenticated
+- ✅ Error messages use empathetic microcopy
+- ✅ Session persists across page refreshes
+- ✅ Auto-confirm email enabled for development
 
 ---
 
