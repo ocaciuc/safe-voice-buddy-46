@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Send, Mic, Volume2 } from "lucide-react";
+import { ArrowLeft, Send, Mic, Volume2, BookOpen } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { streamChat } from "@/lib/streamChat";
@@ -23,6 +23,7 @@ const Chat = () => {
   const [playingMessageId, setPlayingMessageId] = useState<string | null>(null);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [isLoadingConversation, setIsLoadingConversation] = useState(true);
+  const [isEndingConversation, setIsEndingConversation] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -296,6 +297,54 @@ const Chat = () => {
     }
   };
 
+  const handleEndConversation = async () => {
+    if (!conversationId || isEndingConversation) return;
+
+    try {
+      setIsEndingConversation(true);
+
+      // Mark conversation as ended
+      await supabase
+        .from('conversations')
+        .update({ ended_at: new Date().toISOString() })
+        .eq('id', conversationId);
+
+      // Generate summary
+      const { data: summary, error: summaryError } = await supabase.functions.invoke('generate-summary', {
+        body: { conversationId }
+      });
+
+      if (summaryError) throw summaryError;
+
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("No user found");
+
+      // Create journal entry
+      await supabase.from('journal_entries').insert({
+        conversation_id: conversationId,
+        user_id: user.id,
+        ...summary
+      });
+
+      toast({
+        title: "Journal entry created",
+        description: "Your conversation has been saved to your journal.",
+      });
+
+      navigate('/journal');
+    } catch (error) {
+      console.error("Error ending conversation:", error);
+      toast({
+        title: "Couldn't save journal entry",
+        description: "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsEndingConversation(false);
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-background">
       {/* Header */}
@@ -312,7 +361,16 @@ const Chat = () => {
           <h2 className="font-semibold text-lg">{companion.companionName}</h2>
           <p className="text-sm text-muted-foreground">Always here to listen</p>
         </div>
-        <div className="w-10" /> {/* Spacer for alignment */}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={handleEndConversation}
+          disabled={isEndingConversation || messages.length <= 1}
+          className="rounded-full"
+          title="Save to journal"
+        >
+          <BookOpen className="w-5 h-5" />
+        </Button>
       </div>
 
       {/* Messages */}
