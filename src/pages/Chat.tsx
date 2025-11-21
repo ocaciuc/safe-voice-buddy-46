@@ -21,29 +21,126 @@ const Chat = () => {
   const [input, setInput] = useState("");
   const [isThinking, setIsThinking] = useState(false);
   const [playingMessageId, setPlayingMessageId] = useState<string | null>(null);
+  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [isLoadingConversation, setIsLoadingConversation] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const companion = JSON.parse(localStorage.getItem("safevoice_companion") || "{}");
 
+  // Create or load conversation on mount
   useEffect(() => {
     if (!companion.companionName) {
       navigate("/setup");
       return;
     }
 
-    // Welcome message
-    if (messages.length === 0) {
-      setMessages([
-        {
-          id: "1",
-          role: "assistant",
-          content: `Hi ${companion.userName}, I'm ${companion.companionName}. I'm here to listen. What's on your mind today?`,
-          timestamp: new Date(),
-        },
-      ]);
-    }
+    const initConversation = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          navigate("/login");
+          return;
+        }
+
+        // Get or create today's conversation
+        const { data: existingConversations, error: fetchError } = await supabase
+          .from("conversations")
+          .select("*")
+          .eq("user_id", user.id)
+          .is("ended_at", null)
+          .order("started_at", { ascending: false })
+          .limit(1);
+
+        if (fetchError) throw fetchError;
+
+        let convId: string;
+
+        if (existingConversations && existingConversations.length > 0) {
+          // Use existing conversation
+          convId = existingConversations[0].id;
+          
+          // Load messages
+          const { data: existingMessages, error: messagesError } = await supabase
+            .from("messages")
+            .select("*")
+            .eq("conversation_id", convId)
+            .order("created_at", { ascending: true });
+
+          if (messagesError) throw messagesError;
+
+          if (existingMessages && existingMessages.length > 0) {
+            setMessages(
+              existingMessages.map((msg) => ({
+                id: msg.id,
+                role: msg.role as "user" | "assistant",
+                content: msg.content,
+                timestamp: new Date(msg.created_at),
+              }))
+            );
+          } else {
+            // Add welcome message
+            const welcomeContent = `Hi ${companion.userName}, I'm ${companion.companionName}. I'm here to listen. What's on your mind today?`;
+            setMessages([
+              {
+                id: "welcome",
+                role: "assistant",
+                content: welcomeContent,
+                timestamp: new Date(),
+              },
+            ]);
+            // Save welcome message
+            await supabase.from("messages").insert({
+              conversation_id: convId,
+              role: "assistant",
+              content: welcomeContent,
+            });
+          }
+        } else {
+          // Create new conversation
+          const { data: newConversation, error: createError } = await supabase
+            .from("conversations")
+            .insert({ user_id: user.id })
+            .select()
+            .single();
+
+          if (createError) throw createError;
+          convId = newConversation.id;
+
+          // Add welcome message
+          const welcomeContent = `Hi ${companion.userName}, I'm ${companion.companionName}. I'm here to listen. What's on your mind today?`;
+          setMessages([
+            {
+              id: "welcome",
+              role: "assistant",
+              content: welcomeContent,
+              timestamp: new Date(),
+            },
+          ]);
+          
+          // Save welcome message
+          await supabase.from("messages").insert({
+            conversation_id: convId,
+            role: "assistant",
+            content: welcomeContent,
+          });
+        }
+
+        setConversationId(convId);
+      } catch (error) {
+        console.error("Error initializing conversation:", error);
+        toast({
+          title: "Connection error",
+          description: "Unable to load conversation. Please refresh.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoadingConversation(false);
+      }
+    };
+
+    initConversation();
   }, []);
 
   useEffect(() => {
@@ -51,18 +148,30 @@ const Chat = () => {
   }, [messages]);
 
   const handleSend = async () => {
-    if (!input.trim() || isThinking) return;
+    if (!input.trim() || isThinking || !conversationId) return;
 
+    const userContent = input.trim();
     const userMessage: Message = {
       id: Date.now().toString(),
       role: "user",
-      content: input.trim(),
+      content: userContent,
       timestamp: new Date(),
     };
 
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
     setIsThinking(true);
+
+    // Save user message to database
+    try {
+      await supabase.from("messages").insert({
+        conversation_id: conversationId,
+        role: "user",
+        content: userContent,
+      });
+    } catch (error) {
+      console.error("Error saving user message:", error);
+    }
 
     let assistantContent = "";
     const assistantId = (Date.now() + 1).toString();
@@ -95,7 +204,19 @@ const Chat = () => {
           content: m.content,
         })),
         onDelta: (chunk) => upsertAssistant(chunk),
-        onDone: () => setIsThinking(false),
+        onDone: async () => {
+          setIsThinking(false);
+          // Save assistant message to database
+          try {
+            await supabase.from("messages").insert({
+              conversation_id: conversationId,
+              role: "assistant",
+              content: assistantContent,
+            });
+          } catch (error) {
+            console.error("Error saving assistant message:", error);
+          }
+        },
         onError: (error) => {
           console.error("Chat error:", error);
           toast({
@@ -196,6 +317,16 @@ const Chat = () => {
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-6 py-8 space-y-6">
+        {isLoadingConversation ? (
+          <div className="flex justify-center items-center h-full">
+            <div className="flex gap-2">
+              <div className="w-2 h-2 rounded-full bg-muted-foreground animate-breathing" />
+              <div className="w-2 h-2 rounded-full bg-muted-foreground animate-breathing" style={{ animationDelay: "0.2s" }} />
+              <div className="w-2 h-2 rounded-full bg-muted-foreground animate-breathing" style={{ animationDelay: "0.4s" }} />
+            </div>
+          </div>
+        ) : (
+          <>
         {messages.map((message) => (
           <div
             key={message.id}
@@ -252,6 +383,8 @@ const Chat = () => {
           </div>
         )}
         <div ref={messagesEndRef} />
+        </>
+        )}
       </div>
 
       {/* Input Area */}
