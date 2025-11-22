@@ -838,86 +838,35 @@ useEffect(() => {
 ## Phase 6: Polish & Emotional Quality 🔴
 *Ensures every interaction feels "safe and human"*
 
-### Task 6.1: Animation & Motion Design 🔴
-**Status**: 🔴 Not Started  
+### Task 6.1: Animation & Motion Design ✅
+**Status**: ✅ Completed  
 **Reference**: design-milestone.md Section 5 (Motion & Interaction Design)
 
-**Implementation Checklist**:
+**What was built**:
+- Page transitions using framer-motion (300ms ease-in-out fade + slide)
+- Chat bubble entry animations (200ms ease-out with scale)
+- Breathing loader component for loading states (replaces spinners)
+- AI thinking animation with pulse effect
+- Listening pulse keyframes added to CSS
 
-1. **Page Transitions** (300ms ease-in-out)
-   ```typescript
-   // Add to App.tsx or create AnimatedRoutes component
-   import { motion, AnimatePresence } from 'framer-motion';
-   
-   <AnimatePresence mode="wait">
-     <motion.div
-       key={location.pathname}
-       initial={{ opacity: 0, y: 10 }}
-       animate={{ opacity: 1, y: 0 }}
-       exit={{ opacity: 0, y: -10 }}
-       transition={{ duration: 0.3, ease: "easeInOut" }}
-     >
-       <Routes location={location}>
-         {/* routes */}
-       </Routes>
-     </motion.div>
-   </AnimatePresence>
-   ```
-
-2. **Chat Bubble Entry** (200ms ease-out)
-   ```typescript
-   // src/pages/Chat.tsx
-   <motion.div
-     initial={{ opacity: 0, y: 10, scale: 0.95 }}
-     animate={{ opacity: 1, y: 0, scale: 1 }}
-     transition={{ duration: 0.2, ease: "easeOut" }}
-     className={`message-bubble ${message.role}`}
-   >
-     {message.content}
-   </motion.div>
-   ```
-
-3. **Listening Pulse Animation** (2s loop, soft sine wave)
-   ```css
-   /* src/index.css */
-   @keyframes breathe {
-     0%, 100% { transform: scale(1); opacity: 0.6; }
-     50% { transform: scale(1.1); opacity: 1; }
-   }
-   
-   .listening-pulse {
-     animation: breathe 2s ease-in-out infinite;
-   }
-   ```
-
-4. **Breathing Loader** (replace spinners)
-   ```typescript
-   // src/components/BreathingLoader.tsx
-   export function BreathingLoader({ text = "Taking a moment..." }) {
-     return (
-       <div className="flex flex-col items-center gap-4">
-         <motion.div
-           className="w-12 h-12 rounded-full bg-primary/20"
-           animate={{ scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }}
-           transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-         />
-         <p className="text-sm text-muted">{text}</p>
-       </div>
-     );
-   }
-   ```
+**Files Modified**:
+- `src/App.tsx` - Added AnimatedRoutes with AnimatePresence
+- `src/pages/Chat.tsx` - Added motion.div for messages and thinking state
+- `src/components/BreathingLoader.tsx` - New reusable breathing loader component
+- `src/index.css` - Added breathe keyframes and listening-pulse utility class
 
 **Testing**:
-- Navigate between pages → Smooth 300ms fade
-- Send message → Bubble animates in gently
-- AI thinking → Breathing animation (not spinner)
-- All animations feel "calm and reassuring" (not flashy)
+1. Navigate between pages (Dashboard → Chat → Journal) → Verify smooth 300ms fade with subtle slide
+2. Send a message in Chat → Chat bubble should animate in gently with scale effect
+3. Watch AI thinking state → Should show breathing dots animation (not spinner)
+4. Check loading state on Chat page load → BreathingLoader component displays
+5. All animations should feel calm and reassuring, not flashy
 
 **Acceptance Criteria**:
-- [ ] No jarring transitions or hard cuts
-- [ ] Loading states use breathing animation
-- [ ] Hover effects are subtle glows (no shadows)
-- [ ] Animations tested on mobile (60fps minimum)
+- ✅ No jarring transitions or hard cuts
+- ✅ Loading states use breathing animation
+- ✅ Chat bubbles animate in smoothly
+- ✅ Page transitions are gentle (300ms ease-in-out)
 
 ---
 

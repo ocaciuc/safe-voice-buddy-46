@@ -148,6 +148,10 @@ All colors MUST be HSL.
     animation: breathing 2s ease-in-out infinite;
   }
 
+  .listening-pulse {
+    animation: breathe 2s ease-in-out infinite;
+  }
+
   /* Soft shadows for elevation */
   .shadow-soft {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
@@ -195,6 +199,17 @@ All colors MUST be HSL.
   }
   50% {
     transform: scale(1.05);
+    opacity: 1;
+  }
+}
+
+@keyframes breathe {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  50% {
+    transform: scale(1.1);
     opacity: 1;
   }
 }
