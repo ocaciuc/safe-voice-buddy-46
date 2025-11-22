@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, Send, Mic, Volume2, BookOpen } from "lucide-react";
@@ -6,6 +7,7 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { streamChat } from "@/lib/streamChat";
 import { supabase } from "@/integrations/supabase/client";
+import { BreathingLoader } from "@/components/BreathingLoader";
 
 interface Message {
   id: string;
@@ -377,18 +379,17 @@ const Chat = () => {
       <div className="flex-1 overflow-y-auto px-6 py-8 space-y-6">
         {isLoadingConversation ? (
           <div className="flex justify-center items-center h-full">
-            <div className="flex gap-2">
-              <div className="w-2 h-2 rounded-full bg-muted-foreground animate-breathing" />
-              <div className="w-2 h-2 rounded-full bg-muted-foreground animate-breathing" style={{ animationDelay: "0.2s" }} />
-              <div className="w-2 h-2 rounded-full bg-muted-foreground animate-breathing" style={{ animationDelay: "0.4s" }} />
-            </div>
+            <BreathingLoader text="Loading your conversation..." />
           </div>
         ) : (
           <>
         {messages.map((message) => (
-          <div
+          <motion.div
             key={message.id}
-            className={`flex ${message.role === "user" ? "justify-end" : "justify-start"} animate-fade-in`}
+            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
           >
             <div
               className={`max-w-[80%] rounded-3xl px-6 py-4 ${
@@ -426,19 +427,36 @@ const Chat = () => {
                 )}
               </div>
             </div>
-          </div>
+          </motion.div>
         ))}
         
         {isThinking && (
-          <div className="flex justify-start animate-fade-in">
+          <motion.div
+            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            className="flex justify-start"
+          >
             <div className="bg-card border border-border rounded-3xl px-6 py-4 shadow-soft mr-12">
               <div className="flex gap-2">
-                <div className="w-2 h-2 rounded-full bg-muted-foreground animate-breathing" />
-                <div className="w-2 h-2 rounded-full bg-muted-foreground animate-breathing" style={{ animationDelay: "0.2s" }} />
-                <div className="w-2 h-2 rounded-full bg-muted-foreground animate-breathing" style={{ animationDelay: "0.4s" }} />
+                <motion.div 
+                  className="w-2 h-2 rounded-full bg-muted-foreground"
+                  animate={{ scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }}
+                  transition={{ duration: 0.8, repeat: Infinity, ease: "easeInOut" }}
+                />
+                <motion.div 
+                  className="w-2 h-2 rounded-full bg-muted-foreground"
+                  animate={{ scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }}
+                  transition={{ duration: 0.8, repeat: Infinity, ease: "easeInOut", delay: 0.2 }}
+                />
+                <motion.div 
+                  className="w-2 h-2 rounded-full bg-muted-foreground"
+                  animate={{ scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }}
+                  transition={{ duration: 0.8, repeat: Infinity, ease: "easeInOut", delay: 0.4 }}
+                />
               </div>
             </div>
-          </div>
+          </motion.div>
         )}
         <div ref={messagesEndRef} />
         </>
