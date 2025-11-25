@@ -71,7 +71,7 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "journal_entries_conversation_id_fkey"
+            foreignKeyName: "fk_conversation"
             columns: ["conversation_id"]
             isOneToOne: false
             referencedRelation: "conversations"
@@ -103,7 +103,7 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "messages_conversation_id_fkey"
+            foreignKeyName: "fk_conversation"
             columns: ["conversation_id"]
             isOneToOne: false
             referencedRelation: "conversations"
